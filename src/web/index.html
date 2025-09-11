@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POPIA Privacy-as-Code Toolkit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .scan-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .scan-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e7f3ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+
+        .upload-area.dragover .upload-icon {
+            color: #667eea;
+        }
+
+        .scan-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .option-group label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .option-group select,
+        .option-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .option-group select:focus,
+        .option-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .scan-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .scan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .results-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card.high { border-left-color: #dc3545; }
+        .summary-card.medium { border-left-color: #fd7e14; }
+        .summary-card.low { border-left-color: #28a745; }
+
+        .summary-card h3 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .summary-card p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .findings-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .findings-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .findings-table th,
+        .findings-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .findings-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .severity-high { color: #dc3545; font-weight: bold; }
+        .severity-medium { color: #fd7e14; font-weight: bold; }
+        .severity-low { color: #28a745; font-weight: bold; }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .export-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .export-button.pdf {
+            background: #dc3545;
+            color: white;
+        }
+
+        .export-button.html {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .export-button.json {
+            background: #6f42c1;
+            color: white;
+        }
+
+        .export-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: #dc3545;
+        }
+
+        .policy-panel {
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .policy-editor {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            width: 100%;
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .scan-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🛡️ POPIA Privacy-as-Code Toolkit</h1>
+            <p>South African PII Detection & Compliance Scanner</p>
+        </header>
+
+        <div class="main-content">
+            <div class="scan-panel">
+                <h2>🔍 Scan Configuration</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <h3>Drop files here or click to select</h3>
+                    <p>Supported: .py, .js, .ts, .java, .txt, .json, .csv</p>
+                    <input type="file" id="fileInput" multiple accept=".py,.js,.ts,.java,.cpp,.c,.txt,.md,.json,.xml,.csv" style="display: none;">
+                </div>
+
+                <div class="scan-options">
+                    <div class="option-group">
+                        <label for="scanMode">Scan Mode</label>
+                        <select id="scanMode">
+                            <option value="full">Full Scan</option>
+                            <option value="quick">Quick Scan</option>
+                            <option value="custom">Custom Patterns</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="severity">Min Severity</label>
+                        <select id="severity">
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="ignoreTest">Ignore Test Files</label>
+                        <select id="ignoreTest">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+
+                    <div class="option-group">
+                        <label for="enforcePolicy">Enforce Policies</label>
+                        <select id="enforcePolicy">
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="scan-button" id="scanButton">
+                    <span>🚀</span> Start POPIA Scan
+                </button>
+            </div>
+
+            <div class="results-panel">
+                <h2>📊 Scan Results</h2>
+                <div id="resultsContent">
+                    <div class="loading" style="display: none;" id="loadingIndicator">
+                        <div class="spinner"></div>
+                        <p>Scanning for PII patterns...</p>
+                    </div>
+                    
+                    <div id="noResults" style="text-align: center; padding: 40px; color: #666;">
+                        <p>🔍 Select files and click "Start POPIA Scan" to begin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="policy-panel" style="display: none;" id="policyPanel">
+            <h2>📜 Custom Policy Editor</h2>
+            <p>Define custom OPA/Rego policies for your organization:</p>
+            <textarea class="policy-editor" id="policyEditor" placeholder="# Enter custom Rego policy here
+package popia.custom
+
+import future.keywords.if
+
+# Example: No emails in configuration files
+violation[msg] {
+    match := input.matches[_]
+    match.type == &quot;EMAIL&quot;
+    contains(match.file_path, &quot;config&quot;)
+    msg := sprintf(&quot;Email found in config file: %v&quot;, [match.file_path])
+}"></textarea>
+            
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button class="export-button" style="background: #28a745;" onclick="validatePolicy()">
+                    ✅ Validate Policy
+                </button>
+                <button class="export-button" style="background: #6c757d;" onclick="loadSamplePolicy()">
+                    📋 Load Sample
+                </button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>🇿🇦 Built for South African POPIA Compliance | Open Source Privacy-as-Code Solution</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Global variables
+        let selectedFiles = [];
+        let scanResults = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            checkPolicyEditor();
+        });
+
+        function setupEventListeners() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const scanButton = document.getElementById('scanButton');
+            const scanMode = document.getElementById('scanMode');
+
+            // File upload handlers
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Scan button
+            scanButton.addEventListener('click', startScan);
+
+            // Scan mode change
+            scanMode.addEventListener('change', function() {
+                const policyPanel = document.getElementById('policyPanel');
+                policyPanel.style.display = this.value === 'custom' ? 'block' : 'none';
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            processSelectedFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            processSelectedFiles(files);
+        }
+
+        function processSelectedFiles(files) {
+            selectedFiles = files.filter(file => {
+                const validExtensions = ['.py', '.js', '.ts', '.java', '.cpp', '.c', '.txt', '.md', '.json', '.xml', '.csv'];
+                return validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            });
+
+            const uploadArea = document.getElementById('uploadArea');
+            if (selectedFiles.length > 0) {
+                uploadArea.innerHTML = `
+                    <div class="upload-icon">✅</div>
+                    <h3>${selectedFiles.length} files selected</h3>
+                    <p>${selectedFiles.map(f => f.name).slice(0, 3).join(', ')}${selectedFiles.length > 3 ? '...' : ''}</p>
+                `;
+                document.getElementById('scanButton').disabled = false;
+            } else {
+                showToast('No valid files selected. Please select supported file types.', 'error');
+            }
+        }
+
+        async function startScan() {
+            if (selectedFiles.length === 0) {
+                showToast('Please select files to scan first.', 'error');
+                return;
+            }
+
+            const scanButton = document.getElementById('scanButton');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const noResults = document.getElementById('noResults');
+            
+            // Show loading
+            scanButton.disabled = true;
+            scanButton.innerHTML = '<span>⏳</span> Scanning...';
+            loadingIndicator.style.display = 'block';
+            noResults.style.display = 'none';
+
+            try {
+                // Simulate scanning process (in real implementation, this would call the backend API)
+                await simulateScan();
+                
+                // Display results
+                displayScanResults();
+                
+                showToast('Scan completed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Scan error:', error);
+                showToast('Scan failed. Please try again.', 'error');
+            } finally {
+                // Reset button state
+                scanButton.disabled = false;
+                scanButton.innerHTML = '<span>🚀</span> Start POPIA Scan';
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        async function simulateScan() {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Generate mock scan results based on selected files
+            const mockFindings = generateMockFindings();
+            
+            scanResults = {
+                scan_timestamp: new Date().toISOString(),
+                total_matches: mockFindings.length,
+                severity_breakdown: getSeverityBreakdown(mockFindings),
+                popia_sections_affected: [
+                    'Section 15 - Personal Information Processing',
+                    'Section 19 - Processing of Special Personal Information'
+                ],
+                matches: mockFindings,
+                policy_violations: generateMockPolicyViolations(),
+                compliance_status: mockFindings.filter(f => f.severity === 'HIGH').length === 0 ? 'PASS' : 'FAIL'
+            };
+        }
+
+        function generateMockFindings() {
+            const findings = [];
+            const piiTypes = ['SA_ID_NUMBER', 'PHONE_NUMBER', 'EMAIL', 'CREDIT_CARD'];
+            const severities = ['HIGH', 'MEDIUM', 'LOW'];
+            
+            // Generate random findings for demonstration
+            const numFindings = Math.floor(Math.random() * 15) + 5;
+            
+            for (let i = 0; i < numFindings; i++) {
+                const file = selectedFiles[Math.floor(Math.random() * selectedFiles.length)];
+                const piiType = piiTypes[Math.floor(Math.random() * piiTypes.length)];
+                const severity = severities[Math.floor(Math.random() * severities.length)];
+                
+                findings.push({
+                    type: piiType,
+                    file_path: file.name,
+                    line_number: Math.floor(Math.random() * 100) + 1,
+                    column_start: Math.floor(Math.random() * 50),
+                    column_end: Math.floor(Math.random() * 50) + 50,
+                    context: `...${piiType.toLowerCase()} detected in context...`,
+                    severity: severity,
+                    hash_value: Math.random().toString(36).substr(2, 8),
+                    popia_section: severity === 'HIGH' ? 'Section 19 - Processing of Special Personal Information' : 'Section 15 - Personal Information Processing'
+                });
+            }
+            
+            return findings;
+        }
+
+        function generateMockPolicyViolations() {
+            const violations = [];
+            const rules = ['no_sa_id_in_tests', 'high_severity_limit', 'production_code_restrictions'];
+            
+            // Generate some mock violations
+            if (Math.random() > 0.6) {
+                violations.push({
+                    rule: rules[Math.floor(Math.random() * rules.length)],
+                    message: 'Policy violation detected in scanned files',
+                    severity: 'HIGH',
+                    file_path: selectedFiles[0]?.name || 'unknown'
+                });
+            }
+            
+            return violations;
+        }
+
+        function getSeverityBreakdown(findings) {
+            const breakdown = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+            findings.forEach(finding => {
+                breakdown[finding.severity]++;
+            });
+            return breakdown;
+        }
+
+        function displayScanResults() {
+            const resultsContent = document.getElementById('resultsContent');
+            const { total_matches, severity_breakdown, matches, compliance_status } = scanResults;
+            
+            const statusClass = compliance_status === 'PASS' ? 'low' : 'high';
+            const statusIcon = compliance_status === 'PASS' ? '✅' : '❌';
+            
+            resultsContent.innerHTML = `
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3>${total_matches}</h3>
+                        <p>Total Findings</p>
+                    </div>
+                    <div class="summary-card high">
+                        <h3>${severity_breakdown.HIGH}</h3>
+                        <p>High Severity</p>
+                    </div>
+                    <div class="summary-card medium">
+                        <h3>${severity_breakdown.MEDIUM}</h3>
+                        <p>Medium Severity</p>
+                    </div>
+                    <div class="summary-card low">
+                        <h3>${severity_breakdown.LOW}</h3>
+                        <p>Low Severity</p>
+                    </div>
+                    <div class="summary-card ${statusClass}">
+                        <h3>${statusIcon}</h3>
+                        <p>${compliance_status}</p>
+                    </div>
+                </div>
+                
+                <div class="findings-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>File</th>
+                                <th>Line</th>
+                                <th>Severity</th>
+                                <th>Context</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${matches.slice(0, 20).map(match => `
+                                <tr>
+                                    <td><strong>${match.type}</strong></td>
+                                    <td><code>${match.file_path}</code></td>
+                                    <td>${match.line_number}</td>
+                                    <td class="severity-${match.severity.toLowerCase()}">${match.severity}</td>
+                                    <td><em>${match.context.slice(0, 50)}...</em></td>
+                                </tr>
+                            `).join('')}
+                            ${matches.length > 20 ? `
+                                <tr>
+                                    <td colspan="5" style="text-align: center; font-style: italic; color: #666;">
+                                        ... and ${matches.length - 20} more findings
+                                    </td>
+                                </tr>
+                            ` : ''}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="export-buttons">
+                    <button class="export-button pdf" onclick="exportReport('pdf')">
+                        📄 Export PDF
+                    </button>
+                    <button class="export-button html" onclick="exportReport('html')">
+                        🌐 Export HTML
+                    </button>
+                    <button class="export-button json" onclick="exportReport('json')">
+                        📊 Export JSON
+                    </button>
+                </div>
+            `;
+        }
+
+        function exportReport(format) {
+            if (!scanResults) {
+                showToast('No scan results to export.', 'error');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `popia_report_${timestamp}.${format}`;}
